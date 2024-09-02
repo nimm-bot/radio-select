@@ -1,3 +1,6 @@
+/**
+ * Class for converting select input to a radio list.
+ */
 class RadioSelect {
     /**
      * Toggling element to bind events and object instance to. 
@@ -16,12 +19,17 @@ class RadioSelect {
      * {toggle} - REQUIRED - expands and collapses radio list. Toggle template is described by "toggleTemplate" property.
      * {options} - REQUIRED - contains radio list. Individual option wrapper is described by "optionTemplate" property.
      */
-    template = '<div aria-expanded="false" data-radio-select-container>{toggle}{options}</div>';
+    template = '<div aria-expanded="false" class="radio-select-container" data-radio-select-container>'
+        + '{toggle}'
+        + '<div class="radio-select-options" data-radio-select-options>{options}</div>'
+        + '</div>';
 
     /**
      * Template for toggle element. Must be accessible via [data-radio-select-toggle] selector.
      */
-    toggleTemplate = '<div data-radio-select-toggle tabindex="0"><div data-radio-select-label></div></div>';
+    toggleTemplate = '<div class="radio-select-toggle" data-radio-select-toggle tabindex="0">'
+        + '<div class="radio-select-label" data-radio-select-label></div>'
+        + '</div>';
 
     /**
      * Template for individual options within radio list. 
@@ -31,7 +39,7 @@ class RadioSelect {
      * {icon} - if present, draws an icon based on "iconTemplate" property.
      * {label} - is replaced with OPTION's inner text.
      */
-    optionTemplate = '<div class="option" tabindex="0">{input}<div data-radio-select-label>{icon}{label}</div></div>';
+    optionTemplate = '<div class="option" tabindex="0">{input}<div class="radio-select-label" data-radio-select-label>{icon}{label}</div></div>';
 
     /**
      * Template for radio list icons. Defaults to regular images.
@@ -45,27 +53,27 @@ class RadioSelect {
     /**
      * If true, replaces options with checkboxes instead and allows multiple selection.
      */
-    multiple = true;
+    multiple = false;
 
     /**
      * Class constructor
      * 
      * @param {*} select - SELECT element to generate radio list from.
-     * @param {*} options - if given, replaces default class properties.
+     * @param {*} properties - if given, replaces default class properties.
      * @returns 
      */
-    constructor(select, options = {}) {
+    constructor(select, properties = {}) {
         if (select.tagName !== 'SELECT') {
             console.warn('Please use a SELECT element for initialization.');
 
             return false;
         }
 
-        let optionKeys = Object.keys(options);
+        let optionKeys = Object.keys(properties);
 
         for (let i = 0; i < optionKeys.length; i++) {
-            if (this[optionKeys[i]] !== undefined) {
-                this[optionKeys[i]] = options[optionKeys[i]];
+            if (this[optionKeys[i]] !== undefined && !['elem', 'select'].includes(optionKeys[i])) {
+                this[optionKeys[i]] = properties[optionKeys[i]];
             }
         }
 
@@ -97,15 +105,27 @@ class RadioSelect {
      */
     #generateRadioList() {
         let _this = this;
+        let allOptions = this.select.querySelectorAll('option');
         let allOptionStr = '';
 
+        // Append placeholder, if necessary
+        let placeholder = this.select.querySelector('option[value=""]');
+
+        if (placeholder === null && this.multiple) {
+            placeholder = (new DOMParser()).parseFromString(
+                '<option value="" class="placeholder">&nbsp;</option', 
+            'text/html').body.firstChild;
+
+            allOptions.insertBefore(allOptions[0], placeholder);
+        }
+
         // Generate radio list and append before original select element.
-        this.select.querySelectorAll('option').forEach(function (option) {
+        allOptions.forEach(function (option) {
             allOptionStr += _this.#optionToRadio(option);
         });
 
         let str = this.template.replace('{toggle}', this.toggleTemplate)
-            .replace('{options}', '<div data-radio-select-options>' + allOptionStr + '</div>');
+            .replace('{options}', allOptionStr);
 
         this.select.before(
             (new DOMParser()).parseFromString(str, 'text/html').body.firstChild
@@ -113,15 +133,27 @@ class RadioSelect {
 
         // Replace toggle element label with text of selected options.
         let radioList = this.select.previousSibling;
+        let radioListOptions = radioList.querySelectorAll('input');
         let checkedElement = radioList.querySelector('input:checked');
 
-        if (checkedElement !== null) {
-            if (checkedElement.getAttribute('hidden') !== undefined) {
-                checkedElement.closest('.option').classList.add('placeholder');
-            }
+        // If no element is selected, select the first in list.
+        if (checkedElement === null) {
+            checkedElement = radioListOptions[0];
+        };
 
-            radioList.querySelector('[data-radio-select-toggle] [data-radio-select-label]').innerHTML = checkedElement.closest('.option').querySelector('[data-radio-select-label]').innerHTML;
+        if (checkedElement.value === '') {    
+            let checkedELementWrapper = checkedElement.closest('.option');
+            let checkedElementLabel = checkedELementWrapper.querySelector('.radio-select-label');
+
+            checkedELementWrapper.classList.add('placeholder');
+            checkedElementLabel.innerHTML = '<div class="placeholder">' + checkedElementLabel.innerHTML + '</div>';
         }
+
+        let toggleLabel = radioList.querySelector('[data-radio-select-toggle] [data-radio-select-label]');
+
+        if (checkedElement !== null) {
+            toggleLabel.innerHTML = checkedElement.closest('.option').querySelector('[data-radio-select-label]').innerHTML;
+        } 
     }
 
     /**
@@ -130,14 +162,14 @@ class RadioSelect {
      * @param {*} option 
      * @returns 
      */
-    #optionToRadio (option) {
+    #optionToRadio(option) {
         let iconPath = option.getAttribute('data-radio-select-icon');
         let optionStr = this.optionTemplate
             .replace('{icon}', iconPath === null || iconPath === undefined
                 ? ''
                 : this.iconTemplate.replace('{iconPath}', iconPath))
             .replace('{label}', option.text)
-            .replace('{input}', this.multiple ? '<input type="checkbox"/>' : '<input type="radio"/>');
+            .replace('{input}', this.multiple ? '<input type="checkbox" tabindex="-1"/>' : '<input type="radio" tabindex="-1"/>');
 
         let dummyOption = (new DOMParser()).parseFromString(optionStr, 'text/html').body.firstChild;
         let dummyInput = dummyOption.querySelector('input');
@@ -145,7 +177,7 @@ class RadioSelect {
         for (let i = 0; i < option.attributes.length; i++) {
             if (option.attributes[i].name === 'selected') {
                 dummyInput.setAttribute(
-                    'checked', 
+                    'checked',
                     option.attributes[i].value === 'selected'
                         ? 'checked'
                         : option.attributes[i].value
@@ -169,18 +201,18 @@ class RadioSelect {
 
         this.select.closest('body').addEventListener('click', this.#collapseOpenRadioSelect);
 
-        // Toggle actions
+        // Click actions
         this.elem.addEventListener('click', function (e) {
-            _this.#handleToggle();
-        });
+            if (e.target.classList.contains('multiple-item')) {
+                let inputInList = container.querySelector('[data-radio-select-options] input[value="' + e.target.getAttribute('data-radio-value') + '"]');
 
-        this.elem.addEventListener('keyup', function (e) {
-            if (e.code === 'Enter') {
+                // Uncheck selected element if multiple property is true and 
+                inputInList.click();
+            } else {
                 _this.#handleToggle();
             }
         });
 
-        // Select actions
         container.querySelectorAll('[data-radio-select-options] input').forEach(function (item) {
             item.addEventListener('change', function (e) {
                 _this.#handleSelect(e.target);
@@ -188,10 +220,25 @@ class RadioSelect {
             });
         });
 
+        // Select actions
+        this.elem.addEventListener('keyup', function (e) {
+            if (e.code === 'Enter') {
+                _this.#handleToggle();
+            }
+        });
+
         container.querySelectorAll('[data-radio-select-options] .option').forEach(function (item) {
             item.addEventListener('keyup', function (e) {
                 if (container.getAttribute('aria-expanded') === "true" && e.code === 'Enter') {
-                    _this.#handleSelect(e.target);
+                    let input = e.target.querySelector('input');
+
+                    if (input.getAttribute('checked') === 'checked') {
+                        input.removeAttribute('checked')
+                    } else {
+                        input.setAttribute('checked', 'checked');
+                    }
+
+                    _this.#handleSelect(e.target.querySelector('input'));
                     _this.#handleToggle();
 
                     e.target.blur();
@@ -223,6 +270,7 @@ class RadioSelect {
     #handleSelect(option) {
         let container = option.closest('[data-radio-select-container]');
         let toggle = container.querySelector('[data-radio-select-toggle] [data-radio-select-label]');
+        let inputWrapper = option.closest('.option');
 
         toggle.innerHTML = '';
 
@@ -231,17 +279,29 @@ class RadioSelect {
             let selectedOptions = container.querySelectorAll('[data-radio-select-options] input:checked');
 
             selectedOptions.forEach(function (selected) {
-                if (selectedOptions.length === 1 || selected.getAttribute('disabled') === null) {
-                    labelStr += '<div class="multiple-item">' + selected.closest('.option').querySelector('[data-radio-select-label]').innerHTML + '</div>';
+                if (selected.getAttribute('disabled') === null) {
+                    labelStr += '<div class="multiple-item" data-radio-value="' + selected.value + '">' + selected.closest('.option').querySelector('[data-radio-select-label]').innerHTML + '</div>';
                 }
             });
 
-            // Toggle receives a composite label of all selected options.
-            toggle.innerHTML = labelStr;
+            if (labelStr == '') {
+                toggle.innerHTML = container.querySelector('.placeholder [data-radio-select-label]').innerHTML;
+            } else {
+                // Toggle receives a composite label of all selected options.
+                toggle.innerHTML = labelStr;
+            }
         } else {
             // Toggle receives a label of selected option.
-            toggle.innerHTML = option.closest('.option').querySelector('[data-radio-select-label]').innerHTML;
+            toggle.innerHTML = inputWrapper.querySelector('[data-radio-select-label]').innerHTML;
+
+            let activeOption = container.querySelector('[data-radio-select-options] .option.selected');
+
+            if (activeOption !== null) {
+                activeOption.classList.remove('selected');
+            }
         }
+
+        inputWrapper.classList.toggle('selected');
 
         // Disable option selection with tabs when radio list is collapsed.
         this.elem.closest('[data-radio-select-container]').querySelectorAll('[data-radio-select-options] .option').forEach(function (item) {
@@ -260,7 +320,7 @@ class RadioSelect {
         if (container === null) {
             this.closest('body').querySelectorAll('[data-radio-select-toggle]').forEach(function (item) {
                 let openContainer = item.closest('[data-radio-select-container]');
-                
+
                 if (openContainer.getAttribute('aria-expanded') !== 'false') {
                     openContainer.setAttribute('aria-expanded', false);
                 }

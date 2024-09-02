@@ -1,0 +1,40 @@
+<script src="../src/js/radio-select.js" type="text/javascript"></script>
+<link href="../src/css/radio-select.css" rel="stylesheet">
+<link href="../src/css/demo.css" rel="stylesheet">
+<h3>RadioSelect with placeholder</h3>
+<div class="flex">
+    <div class="w40">
+        <select data-radio-select name="select">
+            <option value="">Placeholder</option>
+            <option value="0">Option 1</option>
+            <option value="1">Option 2</option>
+            <option value="2">Option 3</option>
+            <option value="3">Option 4</option>
+        </select>
+        <script>
+            window.addEventListener('load', function () {
+                new RadioSelect(document.querySelector('select'));
+            });
+        </script>
+    </div>
+    <div class="w60">
+        <div class="html">
+            <pre>
+&lt;select data-radio-select name="select">
+    &lt;option value="">Placeholder&lt;/option>
+    &lt;option value="0">Option 1&lt;/option>
+    &lt;option value="1">Option 2&lt;/option>
+    &lt;option value="2">Option 3&lt;/option>
+    &lt;option value="3">Option 4&lt;/option>
+&lt;/select></pre>
+            <div class="language">HTML</div>
+        </div>
+        <div class="js">
+            <pre>
+window.addEventListener('load', function () {
+    new RadioSelect(document.querySelector('select'));
+});</pre>
+            <div class="language">JS</div>
+        </div>
+    </div>
+</div>
