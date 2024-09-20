@@ -11,9 +11,14 @@
             <option value="2">Option 3</option>
             <option value="3">Option 4</option>
         </select>
+		<br>
+		<p>With an empty select:</p>
+		<select data-radio-select name="select"></select>
         <script>
             window.addEventListener('load', function () {
-                new RadioSelect(document.querySelector('select'));
+				document.querySelectorAll('select').forEach(function(item, i) {
+					new RadioSelect(item);
+				});
             });
         </script>
     </div>

@@ -105,13 +105,19 @@ class RadioSelect {
      */
     #generateRadioList() {
         let _this = this;
-        let allOptions = this.select.querySelectorAll('option');
+        let allOptions = _this.select.querySelectorAll('option');
         let allOptionStr = '';
+		
+		// Append placeholder if option list is empty
+		if (allOptions.length === 0) {
+			_this.select.innerHTML = '<option value="">Placeholder</option>';
+			allOptions = _this.select.querySelectorAll('option');
+		}
 
         // Append placeholder, if necessary
-        let placeholder = this.select.querySelector('option[value=""]');
+        let placeholder = _this.select.querySelector('option[value=""]');
 
-        if (placeholder === null && this.multiple) {
+        if (placeholder === null && _this.multiple) {
             placeholder = (new DOMParser()).parseFromString(
                 '<option value="" class="placeholder">&nbsp;</option', 
             'text/html').body.firstChild;
@@ -124,7 +130,7 @@ class RadioSelect {
             allOptionStr += _this.#optionToRadio(option);
         });
 
-        let str = this.template.replace('{toggle}', this.toggleTemplate)
+        let str = _this.template.replace('{toggle}', _this.toggleTemplate)
             .replace('{options}', allOptionStr);
 
         this.select.before(
@@ -132,7 +138,7 @@ class RadioSelect {
         );
 
         // Replace toggle element label with text of selected options.
-        let radioList = this.select.previousSibling;
+        let radioList = _this.select.previousSibling;
         let radioListOptions = radioList.querySelectorAll('input');
         let checkedElement = radioList.querySelector('input:checked');
 
@@ -315,16 +321,14 @@ class RadioSelect {
      * @param {*} e 
      */
     #collapseOpenRadioSelect(e) {
+		let _this = this;
         let container = e.target.closest('[data-radio-select-container]');
-
-        if (container === null) {
-            this.closest('body').querySelectorAll('[data-radio-select-toggle]').forEach(function (item) {
-                let openContainer = item.closest('[data-radio-select-container]');
-
-                if (openContainer.getAttribute('aria-expanded') !== 'false') {
-                    openContainer.setAttribute('aria-expanded', false);
-                }
-            });
-        }
+		let openContainers = _this.closest('body').querySelectorAll('[data-radio-select-container][aria-expanded="true"]');
+		
+		openContainers.forEach(function(item) {
+			if (item !== container) {
+				item.setAttribute('aria-expanded', false);
+			}
+		});
     }
 }
